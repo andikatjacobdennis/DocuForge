@@ -34,6 +34,7 @@ namespace ProjectDocumentationTool
                 .AddSingleton<DocumentationService>()
                 .AddTransient<IMenuService, MenuService>()
                 .AddSingleton<PathSanitizer>()
+                .AddSingleton<PlantUmlDiagramGenerator>()
                 .BuildServiceProvider();
 
             // Resolve the menu service and call the method to display the menu

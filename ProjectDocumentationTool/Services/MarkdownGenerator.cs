@@ -7,14 +7,14 @@ namespace ProjectDocumentationTool.Services
     {
         public string GenerateSolutionMarkdown(SolutionInfoModel solutionInfo)
         {
-            var markdown = new StringBuilder();
+            StringBuilder markdown = new StringBuilder();
             markdown.AppendLine($"## Solution: {solutionInfo.Name}\n");
 
             // Add solution configurations (Build configurations)
             markdown.AppendLine("### Solution Configurations:");
             if (solutionInfo.SolutionConfigurationPlatforms.Any())
             {
-                foreach (var config in solutionInfo.SolutionConfigurationPlatforms)
+                foreach (string config in solutionInfo.SolutionConfigurationPlatforms)
                 {
                     markdown.AppendLine($"- {config}");
                 }
@@ -26,7 +26,7 @@ namespace ProjectDocumentationTool.Services
 
             // Add project details with a table for each project
             markdown.AppendLine("\n### Projects:");
-            foreach (var project in solutionInfo.ProjectInfos)
+            foreach (ProjectInfoModel project in solutionInfo.ProjectInfos)
             {
                 markdown.AppendLine(GenerateProjectMarkdown(project, solutionInfo.ProjectConfigurationPlatforms));
 
@@ -37,12 +37,12 @@ namespace ProjectDocumentationTool.Services
                 // For each project, loop through its configuration details and display them
                 if (solutionInfo.ProjectConfigDetails.ContainsKey(project.Guid))
                 {
-                    foreach (var configEntry in solutionInfo.ProjectConfigDetails[project.Guid])
+                    foreach (KeyValuePair<string, ConfigurationDetail> configEntry in solutionInfo.ProjectConfigDetails[project.Guid])
                     {
-                        var configDetail = configEntry.Value;
-                        var activeCfg = configDetail.ActiveCfg ?? "N/A";
-                        var buildCfg = configDetail.BuildCfg ?? "N/A";
-                        var deployCfg = configDetail.DeployCfg ?? "N/A";
+                        ConfigurationDetail configDetail = configEntry.Value;
+                        string activeCfg = configDetail.ActiveCfg ?? "N/A";
+                        string buildCfg = configDetail.BuildCfg ?? "N/A";
+                        string deployCfg = configDetail.DeployCfg ?? "N/A";
 
                         markdown.AppendLine($"| {configEntry.Key} | {activeCfg} | {buildCfg} | {deployCfg} |");
                     }
@@ -55,7 +55,7 @@ namespace ProjectDocumentationTool.Services
 
             // Add Service Fabric project details
             markdown.AppendLine("\n### Service Fabric Projects:");
-            foreach (var sfProject in solutionInfo.ServiceFabricProjects)
+            foreach (ServiceFabricProjectInfoModel sfProject in solutionInfo.ServiceFabricProjects)
             {
                 markdown.AppendLine(GenerateServiceFabricMarkdown(sfProject));
             }
@@ -66,14 +66,14 @@ namespace ProjectDocumentationTool.Services
 
         public string GenerateProjectMarkdown(ProjectInfoModel projectInfo, Dictionary<string, Dictionary<string, string>> projectConfigPlatforms)
         {
-            var markdown = new StringBuilder();
+            StringBuilder markdown = new StringBuilder();
             markdown.AppendLine($"### Project: {projectInfo.ProjectName}\n");
 
             // Add project dependencies
             if (projectInfo.ProjectDependencies.Any())
             {
                 markdown.AppendLine("\n#### Dependencies:");
-                foreach (var dependency in projectInfo.ProjectDependencies)
+                foreach (KeyValuePair<string, List<string>> dependency in projectInfo.ProjectDependencies)
                 {
                     markdown.AppendLine($"- **{dependency.Key}**: {string.Join(", ", dependency.Value)}");
                 }
@@ -87,7 +87,7 @@ namespace ProjectDocumentationTool.Services
             if (projectInfo.PackageReferences.Any())
             {
                 markdown.AppendLine("\n#### Package References:");
-                foreach (var package in projectInfo.PackageReferences)
+                foreach (KeyValuePair<string, List<string>> package in projectInfo.PackageReferences)
                 {
                     markdown.AppendLine($"- **{package.Key}**: {string.Join(", ", package.Value)}");
                 }
@@ -102,7 +102,7 @@ namespace ProjectDocumentationTool.Services
 
         public string GenerateServiceFabricMarkdown(ServiceFabricProjectInfoModel serviceFabricProject)
         {
-            var markdown = new StringBuilder();
+            StringBuilder markdown = new StringBuilder();
             markdown.AppendLine($"### Service Fabric Project: {serviceFabricProject.ProjectFilePath}\n");
 
             markdown.AppendLine($"- **Project Version**: {serviceFabricProject.ProjectVersion}");
@@ -112,7 +112,7 @@ namespace ProjectDocumentationTool.Services
             if (serviceFabricProject.Services.Any())
             {
                 markdown.AppendLine("\n#### Services:");
-                foreach (var service in serviceFabricProject.Services)
+                foreach (string service in serviceFabricProject.Services)
                 {
                     markdown.AppendLine($"- {service}");
                 }
@@ -129,7 +129,7 @@ namespace ProjectDocumentationTool.Services
             if (serviceFabricProject.ApplicationParameters.Any())
             {
                 markdown.AppendLine("\n#### Application Parameters:");
-                foreach (var param in serviceFabricProject.ApplicationParameters)
+                foreach (string param in serviceFabricProject.ApplicationParameters)
                 {
                     markdown.AppendLine($"- {param}");
                 }
@@ -143,7 +143,7 @@ namespace ProjectDocumentationTool.Services
             if (serviceFabricProject.PublishProfiles.Any())
             {
                 markdown.AppendLine("\n#### Publish Profiles:");
-                foreach (var profile in serviceFabricProject.PublishProfiles)
+                foreach (string profile in serviceFabricProject.PublishProfiles)
                 {
                     markdown.AppendLine($"- {profile}");
                 }

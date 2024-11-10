@@ -6,7 +6,7 @@
         public void WriteMarkdown(string content, string destination)
         {
             // Ensure the directory exists
-            var directory = Path.GetDirectoryName(destination);
+            string? directory = Path.GetDirectoryName(destination);
             if (!Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);

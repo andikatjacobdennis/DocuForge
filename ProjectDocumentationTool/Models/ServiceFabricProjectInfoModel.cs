@@ -41,6 +41,9 @@ namespace ProjectDocumentationTool.Models
         // Method to populate the Service Fabric project info from the .sfproj XML
         public void PopulateFromSfproj(string sfprojFilePath)
         {
+            // Update path
+            ProjectFilePath = sfprojFilePath;
+
             // Load the .sfproj file
             XDocument sfprojXml = XDocument.Load(sfprojFilePath);
             XElement root = sfprojXml.Root;
@@ -49,28 +52,28 @@ namespace ProjectDocumentationTool.Models
             XNamespace ns = "http://schemas.microsoft.com/developer/msbuild/2003";
 
             // Extract Target Framework Version
-            var targetFrameworkVersionElement = root.Descendants(ns + "TargetFrameworkVersion").FirstOrDefault();
+            XElement? targetFrameworkVersionElement = root.Descendants(ns + "TargetFrameworkVersion").FirstOrDefault();
             TargetFrameworkVersion = targetFrameworkVersionElement?.Value;
 
             // Extract Project Version
-            var projectVersionElement = root.Descendants(ns + "ProjectVersion").FirstOrDefault();
+            XElement? projectVersionElement = root.Descendants(ns + "ProjectVersion").FirstOrDefault();
             ProjectVersion = projectVersionElement?.Value;
 
             // Extract Services (if applicable)
-            var serviceElements = root.Descendants(ns + "ItemGroup")
+            List<string> serviceElements = root.Descendants(ns + "ItemGroup")
                                       .Descendants(ns + "Service")
                                       .Select(e => e.Value).ToList();
             Services.AddRange(serviceElements);
 
             // Extract Application Manifest
-            var applicationManifestElement = root.Descendants(ns + "ItemGroup")
+            XElement? applicationManifestElement = root.Descendants(ns + "ItemGroup")
                                                  .Descendants(ns + "None")
                                                  .Where(e => e.Attribute("Include")?.Value.Contains("ApplicationManifest.xml") == true)
                                                  .FirstOrDefault();
             ApplicationManifest = applicationManifestElement?.Attribute("Include")?.Value;
 
             // Extract Application Parameters (Cloud/Local)
-            var applicationParamsElements = root.Descendants(ns + "ItemGroup")
+            List<string?> applicationParamsElements = root.Descendants(ns + "ItemGroup")
                                                  .Descendants(ns + "None")
                                                  .Where(e => e.Attribute("Include")?.Value.Contains("ApplicationParameters") == true)
                                                  .Select(e => e.Attribute("Include")?.Value)
@@ -78,7 +81,7 @@ namespace ProjectDocumentationTool.Models
             ApplicationParameters.AddRange(applicationParamsElements);
 
             // Extract Publish Profiles
-            var publishProfilesElements = root.Descendants(ns + "ItemGroup")
+            List<string?> publishProfilesElements = root.Descendants(ns + "ItemGroup")
                                                .Descendants(ns + "None")
                                                .Where(e => e.Attribute("Include")?.Value.Contains("PublishProfiles") == true)
                                                .Select(e => e.Attribute("Include")?.Value)
@@ -86,14 +89,14 @@ namespace ProjectDocumentationTool.Models
             PublishProfiles.AddRange(publishProfilesElements);
 
             // Extract Deploy Script (if available)
-            var deployScriptElement = root.Descendants(ns + "ItemGroup")
+            XElement? deployScriptElement = root.Descendants(ns + "ItemGroup")
                                           .Descendants(ns + "None")
                                           .Where(e => e.Attribute("Include")?.Value.Contains("Deploy-FabricApplication.ps1") == true)
                                           .FirstOrDefault();
             DeployScript = deployScriptElement?.Attribute("Include")?.Value;
 
             // Extract Project References (e.g., references to other projects like Ir.ActivityStream.Microservice)
-            var projectReferenceElements = root.Descendants(ns + "ItemGroup")
+            List<string?> projectReferenceElements = root.Descendants(ns + "ItemGroup")
                                                .Descendants(ns + "ProjectReference")
                                                .Select(e => e.Attribute("Include")?.Value)
                                                .ToList();
@@ -103,7 +106,7 @@ namespace ProjectDocumentationTool.Models
         // Private method to generate a human-readable summary
         private string GenerateSummary()
         {
-            var summary = "Service Fabric Project Summary:\n";
+            string summary = "Service Fabric Project Summary:\n";
             summary += $"Project File: {ProjectFilePath}\n";
             summary += $"Project Version: {ProjectVersion ?? "Not specified"}\n";
             summary += $"Target Framework Version: {TargetFrameworkVersion ?? "Not specified"}\n\n";
@@ -112,7 +115,7 @@ namespace ProjectDocumentationTool.Models
             summary += "Services:\n";
             if (Services.Any())
             {
-                foreach (var service in Services)
+                foreach (string service in Services)
                 {
                     summary += $"- {service}\n";
                 }
@@ -129,7 +132,7 @@ namespace ProjectDocumentationTool.Models
             summary += "\nApplication Parameters:\n";
             if (ApplicationParameters.Any())
             {
-                foreach (var param in ApplicationParameters)
+                foreach (string param in ApplicationParameters)
                 {
                     summary += $"- {param}\n";
                 }
@@ -143,7 +146,7 @@ namespace ProjectDocumentationTool.Models
             summary += "\nPublish Profiles:\n";
             if (PublishProfiles.Any())
             {
-                foreach (var profile in PublishProfiles)
+                foreach (string profile in PublishProfiles)
                 {
                     summary += $"- {profile}\n";
                 }
@@ -160,7 +163,7 @@ namespace ProjectDocumentationTool.Models
             summary += "\nProject References:\n";
             if (ProjectReferences.Any())
             {
-                foreach (var projectRef in ProjectReferences)
+                foreach (string projectRef in ProjectReferences)
                 {
                     summary += $"- {projectRef}\n";
                 }

@@ -3,6 +3,7 @@ using Microsoft.Build.Locator;
 using ProjectDocumentationTool.Models;
 using ProjectDocumentationTool.Interfaces;
 using System.Xml.Linq;
+using System.Text.RegularExpressions;
 
 namespace ProjectDocumentationTool.Implementation
 {
@@ -26,7 +27,7 @@ namespace ProjectDocumentationTool.Implementation
             Microsoft.CodeAnalysis.Solution solution = workspace.OpenSolutionAsync(solutionPath).Result;
 
             // Parse the solution file to extract project GUIDs and paths
-            var projectGuidMap = ExtractProjectGuidsFromSolution(solutionPath);
+            Dictionary<string, string> projectGuidMap = ExtractProjectGuidsFromSolution(solutionPath);
 
             // Load and parse solution configurations
             LoadSolutionConfigurations(solutionPath, solutionInfo);
@@ -56,14 +57,34 @@ namespace ProjectDocumentationTool.Implementation
                 // Analyze project dependencies (other projects referenced by this one)
                 foreach (Microsoft.CodeAnalysis.ProjectReference projectReference in project.ProjectReferences)
                 {
-                    // Add project dependencies in the format {ProjectName: [List of Dependencies]}
-                    string projectName = projectReference.ProjectId.Id.ToString(); // You can adjust to use the project name for readability
-                    if (!projectInfo.ProjectDependencies.ContainsKey(projectName))
+                    // Get the name of the referenced project
+                    string projectId = projectReference.ProjectId.ToString(); // You can adjust to use the project name for readability
+                    string referencedProjectFilePath = ExtractFilePathFromProjectId(projectId);
+                    string referencedProjectGuid = string.Empty;
+                    string referencedProjectName = Path.GetFileNameWithoutExtension(referencedProjectFilePath);
+
+                    // Retrieve the Project GUID from the solution file (if available)
+                    if (projectGuidMap.TryGetValue(referencedProjectFilePath, out string referencedProject))
                     {
-                        projectInfo.ProjectDependencies[projectName] = new List<string>();
+                        referencedProjectGuid = referencedProject;
                     }
-                    projectInfo.ProjectDependencies[projectName].Add(projectName);
+                    else
+                    {
+                        // Handle the case where the GUID is not found in the solution file
+                        Console.WriteLine($"Warning: GUID not found for referenced project {project.Name}.");
+                    }
+
+                    // Avoid adding self-dependency (i.e., the project should not be listed as its own dependency)
+                    if (referencedProjectName != projectInfo.ProjectName)
+                    {
+                        if (!projectInfo.ProjectDependencies.ContainsKey(referencedProjectName))
+                        {
+                            projectInfo.ProjectDependencies[referencedProjectName] = new List<string>();
+                        }
+                        projectInfo.ProjectDependencies[referencedProjectName].Add(referencedProjectGuid); // Add the current project to the referenced project's list of dependencies
+                    }
                 }
+
 
                 // Analyze NuGet package references
                 Dictionary<string, string> nugetPackages = GetNuGetPackageReferences(project.FilePath);
@@ -90,30 +111,51 @@ namespace ProjectDocumentationTool.Implementation
             return solutionInfo;
         }
 
+        // Method to extract the file path
+        private string ExtractFilePathFromProjectId(string input)
+        {
+            // Regular expression to match the file path
+            string pattern = @"-\s([A-Za-z]:\\(?:[^\\\r\n]+\\)*[^\\\r\n]+\.csproj)";
+
+            // Match the pattern
+            Match match = Regex.Match(input, pattern);
+
+            if (match.Success)
+            {
+                // Return the file path from the match group
+                return match.Groups[1].Value;
+            }
+            else
+            {
+                // Return null if no match is found
+                return null;
+            }
+        }
+
         private Dictionary<string, string> ExtractProjectGuidsFromSolution(string solutionPath)
         {
-            var projectGuidMap = new Dictionary<string, string>();
+            Dictionary<string, string> projectGuidMap = new Dictionary<string, string>();
 
             // Get the directory path of the solution file
-            var solutionDirectory = Path.GetDirectoryName(solutionPath);
+            string? solutionDirectory = Path.GetDirectoryName(solutionPath);
 
             // Read the .sln file to extract project paths and GUIDs
-            var lines = File.ReadAllLines(solutionPath);
+            string[] lines = File.ReadAllLines(solutionPath);
 
-            foreach (var line in lines)
+            foreach (string line in lines)
             {
                 // Check if this is a "Project" line
                 if (line.StartsWith("Project(") && line.Contains("= "))
                 {
                     // Split the line by commas, taking care to handle the part that includes the GUID
-                    var parts = line.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] parts = line.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 
                     if (parts.Length == 3)
                     {
                         // Extract project path and GUID, making sure braces are preserved
-                        var relativeProjectPath = parts[1].Trim().Trim('"'); // Get relative path without quotes
-                        var absoluteProjectPath = Path.Combine(solutionDirectory, relativeProjectPath); // Make path absolute
-                        var projectGuid = parts[2].Trim().Trim('"'); // Retain braces around the GUID
+                        string relativeProjectPath = parts[1].Trim().Trim('"'); // Get relative path without quotes
+                        string absoluteProjectPath = Path.Combine(solutionDirectory, relativeProjectPath); // Make path absolute
+                        string projectGuid = parts[2].Trim().Trim('"'); // Retain braces around the GUID
 
                         // Add the mapping to the dictionary
                         projectGuidMap[absoluteProjectPath] = projectGuid;
@@ -233,7 +275,7 @@ namespace ProjectDocumentationTool.Implementation
                                     solutionInfo.ProjectConfigDetails[projectGuid][config] = new ConfigurationDetail();
                                 }
 
-                                var configDetail = solutionInfo.ProjectConfigDetails[projectGuid][config];
+                                ConfigurationDetail configDetail = solutionInfo.ProjectConfigDetails[projectGuid][config];
 
                                 // Step 4: Set the correct configuration type (ActiveCfg, BuildCfg, DeployCfg)
                                 if (configType.Equals("ActiveCfg"))
@@ -275,11 +317,11 @@ namespace ProjectDocumentationTool.Implementation
 
         private void ParseProjectBuildProperties(ProjectInfoModel projectInfo)
         {
-            var projectFilePath = projectInfo.ProjectPath;
+            string projectFilePath = projectInfo.ProjectPath;
             if (File.Exists(projectFilePath))
             {
                 // Load the project file as XML
-                var projectXml = XDocument.Load(projectFilePath);
+                XDocument projectXml = XDocument.Load(projectFilePath);
 
                 // Extract TargetFramework
                 projectInfo.TargetFramework = projectXml.Descendants("TargetFramework").FirstOrDefault()?.Value;

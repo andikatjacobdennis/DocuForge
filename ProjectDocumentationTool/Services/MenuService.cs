@@ -1,7 +1,6 @@
 ﻿using ProjectDocumentationTool.Interfaces;
 using Microsoft.Extensions.Logging;
 using ProjectDocumentationTool.Utilities;
-using Microsoft.CodeAnalysis;
 
 namespace ProjectDocumentationTool.Services
 {
@@ -12,19 +11,22 @@ namespace ProjectDocumentationTool.Services
         private readonly ILogger<MenuService> _logger;
         private readonly PathSanitizer _pathSanitizer;
         private readonly DocumentationService _documentationService;
+        private readonly PlantUmlDiagramGenerator _plantUmlDiagramGenerator;
 
         // Constructor with ILogger injected
         public MenuService(IDiagramGenerator diagramGenerator, 
             ISourceAnalyser sourceAnalyser, 
             ILogger<MenuService> logger, 
             PathSanitizer pathSanitizer,
-            DocumentationService documentationService)
+            DocumentationService documentationService,
+            PlantUmlDiagramGenerator plantUmlDiagramGenerator)
         {
             _diagramGenerator = diagramGenerator;
             _sourceAnalyser = sourceAnalyser;
             _logger = logger;
             _pathSanitizer = pathSanitizer;
             _documentationService = documentationService;
+            _plantUmlDiagramGenerator = plantUmlDiagramGenerator;
         }
 
         public void DisplayMenu()
@@ -69,6 +71,9 @@ namespace ProjectDocumentationTool.Services
 
                             // Generate and save documentation
                             _documentationService.GenerateAndSaveDocumentation(solutionInfo, "output/Documentation.md");
+
+                            // Generate and save dependency diagram
+                            _plantUmlDiagramGenerator.GenerateDependencyDiagram(solutionInfo, "output/diagram/Documentation.puml");
                         }
                         catch (Exception ex)
                         {
