@@ -14,10 +14,12 @@ namespace ProjectDocumentationTool.Services
 
         /// <summary>
         /// Generates markdown documentation for a ProjectInfoModel.
+        /// Includes build configuration details.
         /// </summary>
         /// <param name="projectInfo">The ProjectInfoModel containing project details and dependencies.</param>
-        /// <returns>Returns a markdown string detailing the project structure and dependencies.</returns>
-        string GenerateProjectMarkdown(ProjectInfoModel projectInfo);
+        /// <param name="projectConfigPlatforms">A dictionary of project-specific build configurations.</param>
+        /// <returns>Returns a markdown string detailing the project structure, dependencies, and build configurations.</returns>
+        string GenerateProjectMarkdown(ProjectInfoModel projectInfo, Dictionary<string, Dictionary<string, string>> projectConfigPlatforms);
 
         /// <summary>
         /// Generates markdown documentation for a ServiceFabricProjectInfoModel.

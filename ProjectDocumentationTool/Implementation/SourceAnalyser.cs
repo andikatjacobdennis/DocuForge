@@ -10,13 +10,11 @@ namespace ProjectDocumentationTool.Implementation
     {
         public SourceAnalyser()
         {
-            // Register MSBuild instance to make MSBuild APIs accessible
             MSBuildLocator.RegisterDefaults();
         }
 
         public SolutionInfoModel AnalyzeSolution(string solutionPath)
         {
-            // Create an empty SolutionInfo object to hold all project data
             SolutionInfoModel solutionInfo = new SolutionInfoModel
             {
                 Name = Path.GetFileName(solutionPath),
@@ -24,20 +22,22 @@ namespace ProjectDocumentationTool.Implementation
                 ServiceFabricProjects = new List<ServiceFabricProjectInfoModel>()
             };
 
-            // Load the solution using Roslyn's MSBuild API
             using MSBuildWorkspace workspace = MSBuildWorkspace.Create();
             Microsoft.CodeAnalysis.Solution solution = workspace.OpenSolutionAsync(solutionPath).Result;
 
+            // Load and parse solution configurations
+            LoadSolutionConfigurations(solutionPath, solutionInfo);
+
             foreach (Microsoft.CodeAnalysis.Project project in solution.Projects)
             {
-                // For each project, create a ProjectInfo object
                 ProjectInfoModel projectInfo = new ProjectInfoModel
                 {
                     ProjectName = project.Name,
-                    ProjectDependencies = new Dictionary<string, List<string>>(),
-                    PackageReferences = new Dictionary<string, List<string>>()
+                    ProjectPath = project.FilePath
                 };
 
+                // Parse individual project configurations and properties
+                ParseProjectBuildProperties(projectInfo);
                 // Analyze project dependencies (other projects referenced by this one)
                 foreach (Microsoft.CodeAnalysis.ProjectReference projectReference in project.ProjectReferences)
                 {
@@ -60,12 +60,10 @@ namespace ProjectDocumentationTool.Implementation
                     }
                     projectInfo.PackageReferences[package.Key].Add(package.Value);
                 }
-
-                // Add the populated ProjectInfo object to the SolutionInfo list
                 solutionInfo.ProjectInfos.Add(projectInfo);
             }
 
-            // Manually load .sfproj files not handled by MSBuildWorkspace
+            // Handle .sfproj files separately
             List<string> sfprojPaths = GetSfProjPaths(solutionPath);
             foreach (string sfprojPath in sfprojPaths)
             {
@@ -74,17 +72,88 @@ namespace ProjectDocumentationTool.Implementation
                 solutionInfo.ServiceFabricProjects.Add(serviceFabricProjectInfo);
             }
 
-            // Return the populated SolutionInfo object
             return solutionInfo;
         }
 
-        // Manually find and analyze .sfproj files
+        private void LoadSolutionConfigurations(string solutionPath, SolutionInfoModel solutionInfo)
+        {
+            string[] solutionFile = File.ReadAllLines(solutionPath);
+            bool isSolutionConfigSection = false;
+            bool isProjectConfigSection = false;
+
+            foreach (string line in solutionFile)
+            {
+                // Start of SolutionConfigurationPlatforms section
+                if (line.Trim().StartsWith("GlobalSection(SolutionConfigurationPlatforms)"))
+                {
+                    isSolutionConfigSection = true;
+                    continue;
+                }
+
+                // End of SolutionConfigurationPlatforms section
+                if (isSolutionConfigSection && line.Trim().StartsWith("EndGlobalSection"))
+                {
+                    isSolutionConfigSection = false;
+                    continue;
+                }
+
+                // Start of ProjectConfigurationPlatforms section
+                if (line.Trim().StartsWith("GlobalSection(ProjectConfigurationPlatforms)"))
+                {
+                    isProjectConfigSection = true;
+                    continue;
+                }
+
+                // End of ProjectConfigurationPlatforms section
+                if (isProjectConfigSection && line.Trim().StartsWith("EndGlobalSection"))
+                {
+                    isProjectConfigSection = false;
+                    continue;
+                }
+
+                // Process SolutionConfigurationPlatforms lines
+                if (isSolutionConfigSection)
+                {
+                    string config = line.Split('=')[0].Trim();
+                    solutionInfo.SolutionConfigurationPlatforms.Add(config);
+                }
+
+                // Process ProjectConfigurationPlatforms lines
+                if (isProjectConfigSection)
+                {
+                    string[] parts = line.Split('.');
+                    if (parts.Length >= 3)
+                    {
+                        string projectGuid = parts[0].Trim();
+                        string config = parts[1].Trim();
+                        string platform = line.Split('=')[1].Trim();
+
+                        if (!solutionInfo.ProjectConfigurationPlatforms.ContainsKey(projectGuid))
+                        {
+                            solutionInfo.ProjectConfigurationPlatforms[projectGuid] = new Dictionary<string, string>();
+                        }
+                        solutionInfo.ProjectConfigurationPlatforms[projectGuid][config] = platform;
+                    }
+                }
+            }
+        }
+
+        private void ParseProjectBuildProperties(ProjectInfoModel projectInfo)
+        {
+            var projectFilePath = projectInfo.ProjectPath;
+            if (File.Exists(projectFilePath))
+            {
+                var projectXml = XDocument.Load(projectFilePath);
+                projectInfo.TargetFramework = projectXml.Descendants("TargetFramework").FirstOrDefault()?.Value;
+                projectInfo.PlatformTarget = projectXml.Descendants("PlatformTarget").FirstOrDefault()?.Value;
+            }
+        }
+
         private List<string> GetSfProjPaths(string solutionPath)
         {
             List<string> sfprojPaths = new List<string>();
-
-            // Read the solution file (.sln) to find .sfproj references
             string[] solutionFile = File.ReadAllLines(solutionPath);
+
             foreach (string line in solutionFile)
             {
                 if (line.Trim().StartsWith("Project(") && line.Contains(".sfproj"))

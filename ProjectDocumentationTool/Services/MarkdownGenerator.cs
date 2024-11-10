@@ -9,12 +9,22 @@ namespace ProjectDocumentationTool.Services
         {
             var markdown = new StringBuilder();
             markdown.AppendLine($"## Solution: {solutionInfo.Name}");
+
+            // Add solution configurations (Build configurations)
+            markdown.AppendLine("\n### Solution Configurations:");
+            foreach (var config in solutionInfo.SolutionConfigurationPlatforms)
+            {
+                markdown.AppendLine($"- {config}");
+            }
+
+            // Add project details
             markdown.AppendLine("\n### Projects:");
             foreach (var project in solutionInfo.ProjectInfos)
             {
-                markdown.AppendLine(GenerateProjectMarkdown(project));
+                markdown.AppendLine(GenerateProjectMarkdown(project, solutionInfo.ProjectConfigurationPlatforms));
             }
 
+            // Add Service Fabric project details
             markdown.AppendLine("\n### Service Fabric Projects:");
             foreach (var sfProject in solutionInfo.ServiceFabricProjects)
             {
@@ -24,10 +34,24 @@ namespace ProjectDocumentationTool.Services
             return markdown.ToString();
         }
 
-        public string GenerateProjectMarkdown(ProjectInfoModel projectInfo)
+        public string GenerateProjectMarkdown(ProjectInfoModel projectInfo, Dictionary<string, Dictionary<string, string>> projectConfigPlatforms)
         {
             var markdown = new StringBuilder();
             markdown.AppendLine($"### Project: {projectInfo.ProjectName}");
+
+            // Add build configurations for the project
+            markdown.AppendLine("\n#### Build Configurations:");
+            if (projectConfigPlatforms.ContainsKey(projectInfo.ProjectName))
+            {
+                foreach (var config in projectConfigPlatforms[projectInfo.ProjectName])
+                {
+                    markdown.AppendLine($"- **{config.Key}**: {config.Value}");
+                }
+            }
+            else
+            {
+                markdown.AppendLine("No configurations found.");
+            }
 
             // Add project dependencies
             markdown.AppendLine("\n#### Dependencies:");
