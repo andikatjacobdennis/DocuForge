@@ -4,7 +4,7 @@ namespace ProjectDocumentationTool.Interfaces
 {
     public interface ISourceAnalyser
     {
-        ProjectInfo AnalyzeSolution(string solutionPath);
+        SolutionInfoModel AnalyzeSolution(string solutionPath);
     }
 }
 

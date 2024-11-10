@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using ProjectDocumentationTool.Implementation;
 using ProjectDocumentationTool.Interfaces;
+using ProjectDocumentationTool.Utilities;
 using Serilog;
 
 namespace ProjectDocumentationTool
@@ -23,15 +24,16 @@ namespace ProjectDocumentationTool
                 .CreateLogger();
 
             // Create the service provider and configure dependency injection
-            var serviceProvider = new ServiceCollection()
+            ServiceProvider serviceProvider = new ServiceCollection()
                 .AddLogging(builder => builder.AddSerilog()) // Add Serilog for logging
                 .AddTransient<IDiagramGenerator, DiagramGenerator>()
                 .AddTransient<ISourceAnalyser, SourceAnalyser>()
                 .AddTransient<IMenuService, MenuService>()
+                .AddSingleton<PathSanitizer>()
                 .BuildServiceProvider();
 
             // Resolve the menu service and call the method to display the menu
-            var menuService = serviceProvider.GetService<IMenuService>();
+            IMenuService? menuService = serviceProvider.GetService<IMenuService>();
             menuService?.DisplayMenu();
 
             // Ensure all log entries are flushed before the application exits

@@ -1,6 +1,6 @@
 ﻿using ProjectDocumentationTool.Interfaces;
 using Microsoft.Extensions.Logging;
-using System;
+using ProjectDocumentationTool.Utilities;
 
 namespace ProjectDocumentationTool.Implementation
 {
@@ -9,13 +9,15 @@ namespace ProjectDocumentationTool.Implementation
         private readonly IDiagramGenerator _diagramGenerator;
         private readonly ISourceAnalyser _sourceAnalyser;
         private readonly ILogger<MenuService> _logger;
+        private readonly PathSanitizer pathSanitizer;
 
         // Constructor with ILogger injected
-        public MenuService(IDiagramGenerator diagramGenerator, ISourceAnalyser sourceAnalyser, ILogger<MenuService> logger)
+        public MenuService(IDiagramGenerator diagramGenerator, ISourceAnalyser sourceAnalyser, ILogger<MenuService> logger, PathSanitizer pathSanitizer)
         {
             _diagramGenerator = diagramGenerator;
             _sourceAnalyser = sourceAnalyser;
             _logger = logger;
+            this.pathSanitizer = pathSanitizer;
         }
 
         public void DisplayMenu()
@@ -32,7 +34,7 @@ namespace ProjectDocumentationTool.Implementation
                 Console.WriteLine("----------------------------------------------------");
                 Console.Write("Please select an option: ");
 
-                var choice = Console.ReadLine()?.Trim();
+                string? choice = Console.ReadLine()?.Trim();
 
                 _logger.LogInformation("User selected option: {Choice}", choice); // Log user choice
 
@@ -41,8 +43,8 @@ namespace ProjectDocumentationTool.Implementation
                     case "1":
                         // Ensure the solution path is correct
                         Console.Write("Enter the full path of the solution file: ");
-                        var solutionPath = Console.ReadLine()?.Trim();
-
+                        string? solutionPath = Console.ReadLine()?.Trim();
+                        solutionPath = pathSanitizer.SanitizeSolutionPath(solutionPath);
                         if (string.IsNullOrEmpty(solutionPath))
                         {
                             Console.WriteLine("Error: Solution path cannot be empty. Please try again.");
@@ -54,7 +56,7 @@ namespace ProjectDocumentationTool.Implementation
 
                         try
                         {
-                            var projectInfo = _sourceAnalyser.AnalyzeSolution(solutionPath);
+                            Models.SolutionInfoModel projectInfo = _sourceAnalyser.AnalyzeSolution(solutionPath);
                             Console.WriteLine($"Solution '{solutionPath}' analyzed successfully.");
                             _logger.LogInformation("Solution analyzed successfully: {SolutionPath}", solutionPath);
                         }
