@@ -24,11 +24,33 @@ namespace ProjectDocumentationTool.Services
                 markdown.AppendLine("No solution configurations found.");
             }
 
-            // Add project details
+            // Add project details with a table for each project
             markdown.AppendLine("\n### Projects:");
             foreach (var project in solutionInfo.ProjectInfos)
             {
                 markdown.AppendLine(GenerateProjectMarkdown(project, solutionInfo.ProjectConfigurationPlatforms));
+
+                markdown.AppendLine($"#### {project.ProjectName}");
+                markdown.AppendLine("| Configuration | ActiveCfg | BuildCfg | DeployCfg |");
+                markdown.AppendLine("|---------------|-----------|----------|-----------|");
+
+                // For each project, loop through its configuration details and display them
+                if (solutionInfo.ProjectConfigDetails.ContainsKey(project.Guid))
+                {
+                    foreach (var configEntry in solutionInfo.ProjectConfigDetails[project.Guid])
+                    {
+                        var configDetail = configEntry.Value;
+                        var activeCfg = configDetail.ActiveCfg ?? "N/A";
+                        var buildCfg = configDetail.BuildCfg ?? "N/A";
+                        var deployCfg = configDetail.DeployCfg ?? "N/A";
+
+                        markdown.AppendLine($"| {configEntry.Key} | {activeCfg} | {buildCfg} | {deployCfg} |");
+                    }
+                }
+                else
+                {
+                    markdown.AppendLine("No configurations found for this project.");
+                }
             }
 
             // Add Service Fabric project details
@@ -41,24 +63,11 @@ namespace ProjectDocumentationTool.Services
             return markdown.ToString();
         }
 
+
         public string GenerateProjectMarkdown(ProjectInfoModel projectInfo, Dictionary<string, Dictionary<string, string>> projectConfigPlatforms)
         {
             var markdown = new StringBuilder();
             markdown.AppendLine($"### Project: {projectInfo.ProjectName}\n");
-
-            // Add build configurations for the project
-            markdown.AppendLine("#### Build Configurations:");
-            if (projectConfigPlatforms.ContainsKey(projectInfo.ProjectName) && projectConfigPlatforms[projectInfo.ProjectName].Any())
-            {
-                foreach (var config in projectConfigPlatforms[projectInfo.ProjectName])
-                {
-                    markdown.AppendLine($"- **{config.Key}**: {config.Value}");
-                }
-            }
-            else
-            {
-                markdown.AppendLine("No build configurations found.");
-            }
 
             // Add project dependencies
             if (projectInfo.ProjectDependencies.Any())

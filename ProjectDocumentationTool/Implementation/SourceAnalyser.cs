@@ -25,6 +25,9 @@ namespace ProjectDocumentationTool.Implementation
             using MSBuildWorkspace workspace = MSBuildWorkspace.Create();
             Microsoft.CodeAnalysis.Solution solution = workspace.OpenSolutionAsync(solutionPath).Result;
 
+            // Parse the solution file to extract project GUIDs and paths
+            var projectGuidMap = ExtractProjectGuidsFromSolution(solutionPath);
+
             // Load and parse solution configurations
             LoadSolutionConfigurations(solutionPath, solutionInfo);
 
@@ -36,8 +39,20 @@ namespace ProjectDocumentationTool.Implementation
                     ProjectPath = project.FilePath
                 };
 
+                // Retrieve the Project GUID from the solution file (if available)
+                if (projectGuidMap.TryGetValue(project.FilePath, out string projectGuid))
+                {
+                    projectInfo.Guid = projectGuid;
+                }
+                else
+                {
+                    // Handle the case where the GUID is not found in the solution file
+                    Console.WriteLine($"Warning: GUID not found for project {project.Name}.");
+                }
+
                 // Parse individual project configurations and properties
                 ParseProjectBuildProperties(projectInfo);
+
                 // Analyze project dependencies (other projects referenced by this one)
                 foreach (Microsoft.CodeAnalysis.ProjectReference projectReference in project.ProjectReferences)
                 {
@@ -73,6 +88,43 @@ namespace ProjectDocumentationTool.Implementation
             }
 
             return solutionInfo;
+        }
+
+        private Dictionary<string, string> ExtractProjectGuidsFromSolution(string solutionPath)
+        {
+            var projectGuidMap = new Dictionary<string, string>();
+
+            // Get the directory path of the solution file
+            var solutionDirectory = Path.GetDirectoryName(solutionPath);
+
+            // Read the .sln file to extract project paths and GUIDs
+            var lines = File.ReadAllLines(solutionPath);
+
+            foreach (var line in lines)
+            {
+                // Check if this is a "Project" line
+                if (line.StartsWith("Project(") && line.Contains("= "))
+                {
+                    // Split the line by commas, taking care to handle the part that includes the GUID
+                    var parts = line.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+                    if (parts.Length == 3)
+                    {
+                        // Extract project path and GUID, making sure braces are preserved
+                        var relativeProjectPath = parts[1].Trim().Trim('"'); // Get relative path without quotes
+                        var absoluteProjectPath = Path.Combine(solutionDirectory, relativeProjectPath); // Make path absolute
+                        var projectGuid = parts[2].Trim().Trim('"'); // Retain braces around the GUID
+
+                        // Add the mapping to the dictionary
+                        projectGuidMap[absoluteProjectPath] = projectGuid;
+
+                        // Log the extracted values for debugging
+                        Console.WriteLine($"Absolute Project Path: {absoluteProjectPath}, GUID: {projectGuid}");
+                    }
+                }
+            }
+
+            return projectGuidMap;
         }
 
         private void LoadSolutionConfigurations(string solutionPath, SolutionInfoModel solutionInfo)
@@ -118,21 +170,104 @@ namespace ProjectDocumentationTool.Implementation
                     solutionInfo.SolutionConfigurationPlatforms.Add(config);
                 }
 
-                // Process ProjectConfigurationPlatforms lines
                 if (isProjectConfigSection)
                 {
-                    string[] parts = line.Split('.');
-                    if (parts.Length >= 3)
+                    string[] parts = line.Split('=');
+                    if (parts.Length == 2)
                     {
-                        string projectGuid = parts[0].Trim();
-                        string config = parts[1].Trim();
-                        string platform = line.Split('=')[1].Trim();
+                        string projectGuidWithConfig = parts[0].Trim();  // e.g., {63B50589-0460-4849-8F15-CB04F4B5F8A7}.Debug|x64.Build.0
+                        string configDetails = parts[1].Trim();  // e.g., Debug|x64
+                        configDetails = parts[1].Replace("|", "\\|");  // e.g., Debug|x64 --> Debug\|x64
 
-                        if (!solutionInfo.ProjectConfigurationPlatforms.ContainsKey(projectGuid))
+
+                        // Debug: Log the configDetails to inspect its content
+                        // Console.WriteLine($"Processing configuration for project {projectGuidWithConfig}: {configDetails}");
+
+                        // Step 1: Split the project GUID and config part by '.'
+                        string[] guidAndConfigParts = projectGuidWithConfig.Split('.');
+
+                        // Check if the GUID and config part format is valid
+                        if (guidAndConfigParts.Length >= 3 && guidAndConfigParts.Length <= 4) // Handle both cases with and without .0
                         {
-                            solutionInfo.ProjectConfigurationPlatforms[projectGuid] = new Dictionary<string, string>();
+                            string projectGuid = guidAndConfigParts[0].Trim();  // e.g., {63B50589-0460-4849-8F15-CB04F4B5F8A7}
+                            string configPart = guidAndConfigParts[1].Trim();  // e.g., Debug|x64 or Debug|x64.Build.0
+
+                            // Step 2: Split configPart by '|' to get the configuration and platform
+                            string[] configPlatformParts = configPart.Split('|');
+                            if (configPlatformParts.Length == 2)
+                            {
+                                string config = configPlatformParts[0].Trim();  // e.g., Debug
+                                string platform = configPlatformParts[1].Trim();  // e.g., x64
+
+                                string configType = string.Empty;
+
+                                // Step 3: Handle the configType, checking for the case with .0 (e.g., Build.0)
+                                if (guidAndConfigParts.Length == 3)
+                                {
+                                    // If there's a .0 or other suffix, split by '.' to extract the configType (e.g., Build or Deploy)
+                                    string[] configTypeParts = guidAndConfigParts[2].Split('.');
+                                    if (configTypeParts.Length > 1)
+                                    {
+                                        // Handle the case where `.0` exists: Treat `.0` as part of the configuration type (e.g., Build.0 becomes Build)
+                                        configType = configTypeParts[0].Trim();  // e.g., Build or Deploy
+                                    }
+                                    else
+                                    {
+                                        configType = guidAndConfigParts[2].Trim(); // e.g., ActiveCfg if only one part remains
+                                    }
+                                }
+                                else
+                                {
+                                    // If there's no .0 part, it's likely ActiveCfg
+                                    configType = "ActiveCfg";
+                                }
+
+                                // Ensure the project exists in ProjectConfigDetails
+                                if (!solutionInfo.ProjectConfigDetails.ContainsKey(projectGuid))
+                                {
+                                    solutionInfo.ProjectConfigDetails[projectGuid] = new Dictionary<string, ConfigurationDetail>();
+                                }
+
+                                if (!solutionInfo.ProjectConfigDetails[projectGuid].ContainsKey(config))
+                                {
+                                    solutionInfo.ProjectConfigDetails[projectGuid][config] = new ConfigurationDetail();
+                                }
+
+                                var configDetail = solutionInfo.ProjectConfigDetails[projectGuid][config];
+
+                                // Step 4: Set the correct configuration type (ActiveCfg, BuildCfg, DeployCfg)
+                                if (configType.Equals("ActiveCfg"))
+                                {
+                                    configDetail.ActiveCfg = configDetails;  // Store ActiveCfg
+                                }
+                                else if (configType.Equals("Build"))
+                                {
+                                    configDetail.BuildCfg = configDetails;  // Store BuildCfg
+                                }
+                                else if (configType.Equals("Deploy"))
+                                {
+                                    configDetail.DeployCfg = configDetails;  // Store DeployCfg
+                                }
+                                else
+                                {
+                                    // Log unexpected configType
+                                    Console.WriteLine($"Unexpected configType: {configType}");
+                                }
+
+                                // Debug: Log the updated configuration detail to verify it is being set correctly
+                                // Console.WriteLine($"Updated configDetail for project {projectGuid}, config {config}: {configType} -> {configDetails}");
+                            }
+                            else
+                            {
+                                // Handle case where the platform isn't present
+                                Console.WriteLine($"Warning: Unexpected config|platform format for project {projectGuid}: {configPart}");
+                            }
                         }
-                        solutionInfo.ProjectConfigurationPlatforms[projectGuid][config] = platform;
+                        else
+                        {
+                            // Handle case where the GUID and config format isn't as expected
+                            Console.WriteLine($"Warning: Invalid format for project configuration line: {line}");
+                        }
                     }
                 }
             }
@@ -143,8 +278,13 @@ namespace ProjectDocumentationTool.Implementation
             var projectFilePath = projectInfo.ProjectPath;
             if (File.Exists(projectFilePath))
             {
+                // Load the project file as XML
                 var projectXml = XDocument.Load(projectFilePath);
+
+                // Extract TargetFramework
                 projectInfo.TargetFramework = projectXml.Descendants("TargetFramework").FirstOrDefault()?.Value;
+
+                // Extract PlatformTarget
                 projectInfo.PlatformTarget = projectXml.Descendants("PlatformTarget").FirstOrDefault()?.Value;
             }
         }
