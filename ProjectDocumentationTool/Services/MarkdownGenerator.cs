@@ -8,13 +8,20 @@ namespace ProjectDocumentationTool.Services
         public string GenerateSolutionMarkdown(SolutionInfoModel solutionInfo)
         {
             var markdown = new StringBuilder();
-            markdown.AppendLine($"## Solution: {solutionInfo.Name}");
+            markdown.AppendLine($"## Solution: {solutionInfo.Name}\n");
 
             // Add solution configurations (Build configurations)
-            markdown.AppendLine("\n### Solution Configurations:");
-            foreach (var config in solutionInfo.SolutionConfigurationPlatforms)
+            markdown.AppendLine("### Solution Configurations:");
+            if (solutionInfo.SolutionConfigurationPlatforms.Any())
             {
-                markdown.AppendLine($"- {config}");
+                foreach (var config in solutionInfo.SolutionConfigurationPlatforms)
+                {
+                    markdown.AppendLine($"- {config}");
+                }
+            }
+            else
+            {
+                markdown.AppendLine("No solution configurations found.");
             }
 
             // Add project details
@@ -37,11 +44,11 @@ namespace ProjectDocumentationTool.Services
         public string GenerateProjectMarkdown(ProjectInfoModel projectInfo, Dictionary<string, Dictionary<string, string>> projectConfigPlatforms)
         {
             var markdown = new StringBuilder();
-            markdown.AppendLine($"### Project: {projectInfo.ProjectName}");
+            markdown.AppendLine($"### Project: {projectInfo.ProjectName}\n");
 
             // Add build configurations for the project
-            markdown.AppendLine("\n#### Build Configurations:");
-            if (projectConfigPlatforms.ContainsKey(projectInfo.ProjectName))
+            markdown.AppendLine("#### Build Configurations:");
+            if (projectConfigPlatforms.ContainsKey(projectInfo.ProjectName) && projectConfigPlatforms[projectInfo.ProjectName].Any())
             {
                 foreach (var config in projectConfigPlatforms[projectInfo.ProjectName])
                 {
@@ -50,21 +57,35 @@ namespace ProjectDocumentationTool.Services
             }
             else
             {
-                markdown.AppendLine("No configurations found.");
+                markdown.AppendLine("No build configurations found.");
             }
 
             // Add project dependencies
-            markdown.AppendLine("\n#### Dependencies:");
-            foreach (var dependency in projectInfo.ProjectDependencies)
+            if (projectInfo.ProjectDependencies.Any())
             {
-                markdown.AppendLine($"- {dependency.Key}: {string.Join(", ", dependency.Value)}");
+                markdown.AppendLine("\n#### Dependencies:");
+                foreach (var dependency in projectInfo.ProjectDependencies)
+                {
+                    markdown.AppendLine($"- **{dependency.Key}**: {string.Join(", ", dependency.Value)}");
+                }
+            }
+            else
+            {
+                markdown.AppendLine("\nNo dependencies found.");
             }
 
             // Add package references
-            markdown.AppendLine("\n#### Package References:");
-            foreach (var package in projectInfo.PackageReferences)
+            if (projectInfo.PackageReferences.Any())
             {
-                markdown.AppendLine($"- {package.Key}: {string.Join(", ", package.Value)}");
+                markdown.AppendLine("\n#### Package References:");
+                foreach (var package in projectInfo.PackageReferences)
+                {
+                    markdown.AppendLine($"- **{package.Key}**: {string.Join(", ", package.Value)}");
+                }
+            }
+            else
+            {
+                markdown.AppendLine("\nNo package references found.");
             }
 
             return markdown.ToString();
@@ -73,32 +94,54 @@ namespace ProjectDocumentationTool.Services
         public string GenerateServiceFabricMarkdown(ServiceFabricProjectInfoModel serviceFabricProject)
         {
             var markdown = new StringBuilder();
-            markdown.AppendLine($"### Service Fabric Project: {serviceFabricProject.ProjectFilePath}");
-            markdown.AppendLine($"\n- **Project Version**: {serviceFabricProject.ProjectVersion}");
+            markdown.AppendLine($"### Service Fabric Project: {serviceFabricProject.ProjectFilePath}\n");
+
+            markdown.AppendLine($"- **Project Version**: {serviceFabricProject.ProjectVersion}");
             markdown.AppendLine($"- **Target Framework**: {serviceFabricProject.TargetFrameworkVersion}");
 
-            // List services
-            markdown.AppendLine("\n#### Services:");
-            foreach (var service in serviceFabricProject.Services)
+            // List services if any
+            if (serviceFabricProject.Services.Any())
             {
-                markdown.AppendLine($"- {service}");
+                markdown.AppendLine("\n#### Services:");
+                foreach (var service in serviceFabricProject.Services)
+                {
+                    markdown.AppendLine($"- {service}");
+                }
+            }
+            else
+            {
+                markdown.AppendLine("\nNo services found.");
             }
 
             // Add application manifest
             markdown.AppendLine($"\n#### Application Manifest: {serviceFabricProject.ApplicationManifest}");
 
-            // List application parameters
-            markdown.AppendLine("\n#### Application Parameters:");
-            foreach (var param in serviceFabricProject.ApplicationParameters)
+            // List application parameters if any
+            if (serviceFabricProject.ApplicationParameters.Any())
             {
-                markdown.AppendLine($"- {param}");
+                markdown.AppendLine("\n#### Application Parameters:");
+                foreach (var param in serviceFabricProject.ApplicationParameters)
+                {
+                    markdown.AppendLine($"- {param}");
+                }
+            }
+            else
+            {
+                markdown.AppendLine("\nNo application parameters found.");
             }
 
-            // List publish profiles
-            markdown.AppendLine("\n#### Publish Profiles:");
-            foreach (var profile in serviceFabricProject.PublishProfiles)
+            // List publish profiles if any
+            if (serviceFabricProject.PublishProfiles.Any())
             {
-                markdown.AppendLine($"- {profile}");
+                markdown.AppendLine("\n#### Publish Profiles:");
+                foreach (var profile in serviceFabricProject.PublishProfiles)
+                {
+                    markdown.AppendLine($"- {profile}");
+                }
+            }
+            else
+            {
+                markdown.AppendLine("\nNo publish profiles found.");
             }
 
             return markdown.ToString();
