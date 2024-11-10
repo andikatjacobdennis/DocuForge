@@ -1,23 +1,30 @@
 ﻿using ProjectDocumentationTool.Interfaces;
 using Microsoft.Extensions.Logging;
 using ProjectDocumentationTool.Utilities;
+using Microsoft.CodeAnalysis;
 
-namespace ProjectDocumentationTool.Implementation
+namespace ProjectDocumentationTool.Services
 {
     public class MenuService : IMenuService
     {
         private readonly IDiagramGenerator _diagramGenerator;
         private readonly ISourceAnalyser _sourceAnalyser;
         private readonly ILogger<MenuService> _logger;
-        private readonly PathSanitizer pathSanitizer;
+        private readonly PathSanitizer _pathSanitizer;
+        private readonly DocumentationService _documentationService;
 
         // Constructor with ILogger injected
-        public MenuService(IDiagramGenerator diagramGenerator, ISourceAnalyser sourceAnalyser, ILogger<MenuService> logger, PathSanitizer pathSanitizer)
+        public MenuService(IDiagramGenerator diagramGenerator, 
+            ISourceAnalyser sourceAnalyser, 
+            ILogger<MenuService> logger, 
+            PathSanitizer pathSanitizer,
+            DocumentationService documentationService)
         {
             _diagramGenerator = diagramGenerator;
             _sourceAnalyser = sourceAnalyser;
             _logger = logger;
-            this.pathSanitizer = pathSanitizer;
+            _pathSanitizer = pathSanitizer;
+            _documentationService = documentationService;
         }
 
         public void DisplayMenu()
@@ -44,7 +51,7 @@ namespace ProjectDocumentationTool.Implementation
                         // Ensure the solution path is correct
                         Console.Write("Enter the full path of the solution file: ");
                         string? solutionPath = Console.ReadLine()?.Trim();
-                        solutionPath = pathSanitizer.SanitizeSolutionPath(solutionPath);
+                        solutionPath = _pathSanitizer.SanitizeSolutionPath(solutionPath);
                         if (string.IsNullOrEmpty(solutionPath))
                         {
                             Console.WriteLine("Error: Solution path cannot be empty. Please try again.");
@@ -56,9 +63,12 @@ namespace ProjectDocumentationTool.Implementation
 
                         try
                         {
-                            Models.SolutionInfoModel projectInfo = _sourceAnalyser.AnalyzeSolution(solutionPath);
+                            Models.SolutionInfoModel solutionInfo = _sourceAnalyser.AnalyzeSolution(solutionPath);
                             Console.WriteLine($"Solution '{solutionPath}' analyzed successfully.");
                             _logger.LogInformation("Solution analyzed successfully: {SolutionPath}", solutionPath);
+
+                            // Generate and save documentation
+                            _documentationService.GenerateAndSaveDocumentation(solutionInfo, "output/Documentation.md");
                         }
                         catch (Exception ex)
                         {

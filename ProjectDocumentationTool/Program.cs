@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using ProjectDocumentationTool.Implementation;
 using ProjectDocumentationTool.Interfaces;
+using ProjectDocumentationTool.Services;
 using ProjectDocumentationTool.Utilities;
 using Serilog;
 
@@ -28,6 +29,9 @@ namespace ProjectDocumentationTool
                 .AddLogging(builder => builder.AddSerilog()) // Add Serilog for logging
                 .AddTransient<IDiagramGenerator, DiagramGenerator>()
                 .AddTransient<ISourceAnalyser, SourceAnalyser>()
+                .AddSingleton<IMarkdownGenerator, MarkdownGenerator>()
+                .AddSingleton<IMarkdownWriter, FileMarkdownWriter>()
+                .AddSingleton<DocumentationService>()
                 .AddTransient<IMenuService, MenuService>()
                 .AddSingleton<PathSanitizer>()
                 .BuildServiceProvider();
