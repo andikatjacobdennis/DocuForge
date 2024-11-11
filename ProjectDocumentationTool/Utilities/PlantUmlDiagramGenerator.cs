@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -23,66 +24,60 @@ namespace ProjectDocumentationTool.Utilities
 
                 StringBuilder sb = new StringBuilder();
                 sb.AppendLine("@startuml");
-                //sb.AppendLine("skinparam linetype ortho"); // Optional styling for readability
+                sb.AppendLine("title Project Dependency Diagram");
 
-                // Assuming you have a method or dictionary to map GUIDs to project names
+                // Assuming a dictionary to map GUIDs to project names
                 Dictionary<string, string> projectGuidToNameMap = GetProjectGuidToNameMap(solutionInfo.ProjectInfos);
 
-                // Process each ProjectInfoModel in the solution
+                // Add components for each project in the solution
                 foreach (ProjectInfoModel projectInfo in solutionInfo.ProjectInfos)
                 {
-                    // Get the project name using the GUID from the map
+                    string projectName = projectGuidToNameMap[projectInfo.Guid];
+                    _logger.LogInformation("Adding project component: {ProjectName}", projectName);
+                    sb.AppendLine($"component {projectName}");
+                }
+
+                // Add dependencies between projects
+                foreach (ProjectInfoModel projectInfo in solutionInfo.ProjectInfos)
+                {
                     string projectName = projectGuidToNameMap[projectInfo.Guid];
 
-                    _logger.LogInformation("Adding project node for: {ProjectName} with GUID: {ProjectGuid}", projectName, projectInfo.Guid);
-                    sb.AppendLine($"package \"{projectName}\" {{");
-                    sb.AppendLine($"  \"[{projectName}]\""); // Reference to project by name
-                    sb.AppendLine("}");
-
-                    // Add dependency relationships from ProjectDependencies
                     foreach (KeyValuePair<string, List<string>> dependency in projectInfo.ProjectDependencies)
                     {
-                        foreach (string dep in dependency.Value)
+                        foreach (string depGuid in dependency.Value)
                         {
-                            string dependentName = projectInfo.ProjectName; 
-
-                            _logger.LogDebug("Adding dependency from {ProjectName} to {Dependency}", dependentName, dependency.Key);
-                            sb.AppendLine($"\"[{dependentName}]\" --> \"[{dependency.Key}]\" : Depends on");
+                            if (projectGuidToNameMap.TryGetValue(depGuid, out string dependentName))
+                            {
+                                _logger.LogDebug("Adding dependency from {ProjectName} to {DependentName}", projectName, dependentName);
+                                sb.AppendLine($"{projectName} --> {dependentName} : references");
+                            }
                         }
                     }
                 }
 
-                // Process each ServiceFabricProjectInfoModel in the solution
+                // Process dependencies for Service Fabric projects
                 foreach (ServiceFabricProjectInfoModel sfProjectInfo in solutionInfo.ServiceFabricProjects)
                 {
-                    var projectName = Path.GetFileNameWithoutExtension(sfProjectInfo.ProjectFilePath);
+                    string projectName = Path.GetFileNameWithoutExtension(sfProjectInfo.ProjectFilePath);
+                    sb.AppendLine($"component {projectName}");
 
-                    _logger.LogInformation("Adding Service Fabric project node for: {SfProjectPath}", sfProjectInfo.ProjectFilePath);
-                    sb.AppendLine($"package \"{projectName}\" {{");
-                    sb.AppendLine($"  \"[{projectName}]\"");
-                    sb.AppendLine("}");
-
-                    // Add ProjectReferences in ServiceFabricProjectInfoModel
                     foreach (string projectReference in sfProjectInfo.ProjectReferences)
                     {
                         string referenceName = Path.GetFileNameWithoutExtension(projectReference);
                         _logger.LogDebug("Adding reference from {SfProjectPath} to {ReferenceName}", sfProjectInfo.ProjectFilePath, referenceName);
-                        sb.AppendLine($"\"[{projectName}]\" --> \"[{referenceName}]\" : Depends on");
+                        sb.AppendLine($"{projectName} --> {referenceName} : references");
                     }
 
-                    // Include Service Fabric services as nodes
                     foreach (string service in sfProjectInfo.Services)
                     {
-                        _logger.LogDebug("Adding service node for: {Service}", service);
-                        sb.AppendLine($"\"[{service}]\"");
-                        sb.AppendLine($"\"[{projectName}]\" --> \"[{service}]\" : Contains");
+                        sb.AppendLine($"component {service}");
+                        sb.AppendLine($"{projectName} --> {service} : contains");
                     }
                 }
 
-                // Finalize UML syntax
                 sb.AppendLine("@enduml");
 
-                // Ensure the folder exists
+                // Ensure the output directory exists
                 var directoryPath = Path.GetDirectoryName(outputPath);
                 if (!Directory.Exists(directoryPath))
                 {
@@ -93,21 +88,20 @@ namespace ProjectDocumentationTool.Utilities
                 _logger.LogInformation("Writing PlantUML diagram to {OutputPath}", outputPath);
                 File.WriteAllText(outputPath, sb.ToString());
 
-                _logger.LogInformation("Successfully generated the PlantUML dependency diagram for the solution.");
+                _logger.LogInformation("Successfully generated the PlantUML dependency diagram.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while generating the PlantUML dependency diagram for the solution.");
+                _logger.LogError(ex, "An error occurred while generating the PlantUML dependency diagram.");
             }
         }
 
-        // Helper method to build the mapping from GUID to project name
         private Dictionary<string, string> GetProjectGuidToNameMap(IEnumerable<ProjectInfoModel> projectInfos)
         {
             Dictionary<string, string> map = new Dictionary<string, string>();
             foreach (ProjectInfoModel project in projectInfos)
             {
-                map[project.Guid] = project.ProjectName; // Assuming ProjectInfoModel has ProjectName and Guid
+                map[project.Guid] = project.ProjectName;
             }
             return map;
         }
