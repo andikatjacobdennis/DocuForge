@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
+﻿using System.Text;
 using Microsoft.Extensions.Logging;
 using ProjectDocumentationTool.Models;
 
@@ -78,7 +75,7 @@ namespace ProjectDocumentationTool.Utilities
                 sb.AppendLine("@enduml");
 
                 // Ensure the output directory exists
-                var directoryPath = Path.GetDirectoryName(outputPath);
+                string? directoryPath = Path.GetDirectoryName(outputPath);
                 if (!Directory.Exists(directoryPath))
                 {
                     Directory.CreateDirectory(directoryPath);
@@ -89,6 +86,10 @@ namespace ProjectDocumentationTool.Utilities
                 File.WriteAllText(outputPath, sb.ToString());
 
                 _logger.LogInformation("Successfully generated the PlantUML dependency diagram.");
+
+                // Read as json for debugging
+                PlantUmlConverter PlantUmlConverter = new PlantUmlConverter();
+                string json = PlantUmlConverter.ConvertPlantUmlToJson(outputPath);
             }
             catch (Exception ex)
             {

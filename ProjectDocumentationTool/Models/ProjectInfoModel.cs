@@ -10,6 +10,8 @@
 
         public Dictionary<string, List<string>> ProjectDependencies { get; set; }
         public Dictionary<string, List<string>> PackageReferences { get; set; }
+        public string? ProjectFolder { get; internal set; }
+        public string ProjectType { get; internal set; }
 
         public ProjectInfoModel()
         {
