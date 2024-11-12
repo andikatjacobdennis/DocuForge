@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Microsoft.Extensions.Logging;
+using PlantUml.Net;
 using ProjectDocumentationTool.Models;
 
 namespace ProjectDocumentationTool.Utilities
@@ -90,6 +91,13 @@ namespace ProjectDocumentationTool.Utilities
                 // Read as json for debugging
                 PlantUmlConverter PlantUmlConverter = new PlantUmlConverter();
                 string json = PlantUmlConverter.ConvertPlantUmlToJson(outputPath);
+
+                var factory = new RendererFactory();
+
+                var renderer = factory.CreateRenderer(new PlantUmlSettings());
+
+                var bytes = renderer.RenderAsync(sb.ToString(), OutputFormat.Svg).Result;
+                File.WriteAllBytes($"{Path.GetDirectoryName(outputPath)}\\{Path.GetFileNameWithoutExtension(outputPath)}.svg", bytes);
             }
             catch (Exception ex)
             {

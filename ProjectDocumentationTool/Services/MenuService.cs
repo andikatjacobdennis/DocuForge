@@ -104,7 +104,7 @@ namespace ProjectDocumentationTool.Services
                         Console.WriteLine("Solution and Project Extracted successfully.");
                         _logger.LogInformation("Solution and Project Extracted successfully.");
 
-                        foreach (var solution in solutions) 
+                        foreach (var solution in solutions)
                         {
                             string solutionRepoId = $"{solution.SolutionRepoId:000}_{Path.GetFileNameWithoutExtension(solution.SolutionPath)}";
                             SolutionAnalyzer(solutionRepoId, solution.SolutionPath, outputFolder);
@@ -155,7 +155,7 @@ namespace ProjectDocumentationTool.Services
                 _documentationService.GenerateAndSaveDocumentation(solutionInfo, $"{outputFolder}\\{solutionRepoId}\\Documentation.md");
 
                 // Generate and save dependency diagram
-                _plantUmlDiagramGenerator.GenerateDependencyDiagram(solutionInfo, $"{outputFolder}\\{solutionRepoId}\\diagram\\Documentation.puml");
+                _plantUmlDiagramGenerator.GenerateDependencyDiagram(solutionInfo, $"{outputFolder}\\{solutionRepoId}\\diagram\\VisualStudioProjectDepedencyDiagram.puml");
             }
             catch (Exception ex)
             {

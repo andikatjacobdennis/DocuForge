@@ -9,6 +9,7 @@ namespace ProjectDocumentationTool.Services
         {
             StringBuilder markdown = new StringBuilder();
             markdown.AppendLine($"## Solution: {solutionInfo.Name}\n");
+            markdown.AppendLine($"![Visual Studio Project Depedency Diagram](./diagram/VisualStudioProjectDepedencyDiagram.svg)\n");
 
             // Add solution configurations (Build configurations)
             markdown.AppendLine("### Solution Configurations:");
