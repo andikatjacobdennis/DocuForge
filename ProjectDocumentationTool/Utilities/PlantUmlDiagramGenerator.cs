@@ -30,6 +30,10 @@ namespace ProjectDocumentationTool.Utilities
                 // Add components for each project in the solution
                 foreach (ProjectInfoModel projectInfo in solutionInfo.ProjectInfos)
                 {
+                    if (projectInfo.Guid == null)
+                    {
+                        continue;
+                    }
                     string projectName = projectGuidToNameMap[projectInfo.Guid];
                     _logger.LogInformation("Adding project component: {ProjectName}", projectName);
                     sb.AppendLine($"component {projectName}");
@@ -38,6 +42,10 @@ namespace ProjectDocumentationTool.Utilities
                 // Add dependencies between projects
                 foreach (ProjectInfoModel projectInfo in solutionInfo.ProjectInfos)
                 {
+                    if (projectInfo.Guid == null)
+                    {
+                        continue;
+                    }
                     string projectName = projectGuidToNameMap[projectInfo.Guid];
 
                     foreach (KeyValuePair<string, List<string>> dependency in projectInfo.ProjectDependencies)
@@ -110,6 +118,10 @@ namespace ProjectDocumentationTool.Utilities
             Dictionary<string, string> map = new Dictionary<string, string>();
             foreach (ProjectInfoModel project in projectInfos)
             {
+                if (project.Guid == null)
+                {
+                    continue;
+                }
                 map[project.Guid] = project.ProjectName;
             }
             return map;

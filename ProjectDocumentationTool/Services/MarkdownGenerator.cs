@@ -36,7 +36,7 @@ namespace ProjectDocumentationTool.Services
                 markdown.AppendLine("|---------------|-----------|----------|-----------|");
 
                 // For each project, loop through its configuration details and display them
-                if (solutionInfo.ProjectConfigDetails.ContainsKey(project.Guid))
+                if (project.Guid != null && solutionInfo.ProjectConfigDetails.ContainsKey(project.Guid))
                 {
                     foreach (KeyValuePair<string, ConfigurationDetail> configEntry in solutionInfo.ProjectConfigDetails[project.Guid])
                     {

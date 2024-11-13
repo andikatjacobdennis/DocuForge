@@ -173,7 +173,7 @@ namespace ProjectDocumentationTool.Services
             while (!isValid)
             {
                 Console.WriteLine(prompt);
-                path = Console.ReadLine();
+                path = Console.ReadLine().Replace("\"", "");
 
                 // Validate if the directory exists and is indeed a directory
                 if (Directory.Exists(path))
