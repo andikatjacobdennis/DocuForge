@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using ProjectDocumentationTool.Interfaces;
 using ProjectDocumentationTool.Services;
+using ProjectDocumentationTool.Utilities;
 
 namespace ProjectDocumentationTool.Implementation
 {
@@ -8,9 +9,7 @@ namespace ProjectDocumentationTool.Implementation
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddTransient<IDiagramGenerator, DiagramGenerator>();
-            services.AddTransient<ISourceAnalyser, SourceAnalyser>();
-            services.AddTransient<IMenuService, MenuService>();
+
         }
     }
 }

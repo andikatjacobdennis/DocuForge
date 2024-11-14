@@ -1,8 +1,8 @@
 ﻿namespace ProjectDocumentationTool.Interfaces
 {
     public interface IDiagramGenerator
-        {
-            void GenerateDiagram();
-        }
+    {
+        Task<string> GenerateClassDiagramAsync(string exePath, string projectFolderPath, int timeoutMilliseconds);
+    }
 }
 

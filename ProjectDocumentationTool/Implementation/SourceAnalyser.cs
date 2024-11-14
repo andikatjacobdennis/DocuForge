@@ -4,14 +4,21 @@ using ProjectDocumentationTool.Models;
 using ProjectDocumentationTool.Interfaces;
 using System.Xml.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
+using ProjectDocumentationTool.Utilities;
 
 namespace ProjectDocumentationTool.Implementation
 {
     public class SourceAnalyser : ISourceAnalyser
     {
-        public SourceAnalyser()
+        private readonly IDiagramGenerator _diagramGenerator;
+        private readonly ILogger<SourceAnalyser> _logger;
+
+        public SourceAnalyser(IDiagramGenerator diagramGenerator, ILogger<SourceAnalyser> logger)
         {
             MSBuildLocator.RegisterDefaults();
+            _diagramGenerator = diagramGenerator;
+            _logger = logger;
         }
 
         public SolutionInfoModel AnalyzeSolution(string solutionPath)
@@ -37,7 +44,8 @@ namespace ProjectDocumentationTool.Implementation
                 ProjectInfoModel projectInfo = new ProjectInfoModel
                 {
                     ProjectName = project.Name,
-                    ProjectPath = project.FilePath
+                    ProjectPath = project.FilePath,
+                    ProjectFolder = Path.GetDirectoryName(project.FilePath)
                 };
 
                 // Retrieve the Project GUID from the solution file (if available)
@@ -96,6 +104,17 @@ namespace ProjectDocumentationTool.Implementation
                     }
                     projectInfo.PackageReferences[package.Key].Add(package.Value);
                 }
+
+                // Generate class interaction diagram
+
+                string classInteractionDiagram = string.Empty;
+
+                // Define the path to the executable
+                var exePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+                                           @"..\..\..\..\diagram-generator-master\diagram-generator-master\DiagramGenerator\bin\Debug\DiagramGenerator.exe");
+
+                projectInfo.ClassInteractionDiagram = _diagramGenerator.GenerateClassDiagramAsync(exePath, projectInfo.ProjectFolder, 1000).Result;
+
                 solutionInfo.ProjectInfos.Add(projectInfo);
             }
 
