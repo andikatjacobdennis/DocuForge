@@ -105,12 +105,35 @@ namespace ProjectDocumentationTool.Utilities
                 var renderer = factory.CreateRenderer(new PlantUmlSettings());
 
                 var bytes = renderer.RenderAsync(sb.ToString(), OutputFormat.Svg).Result;
+
+                var path = $"{Path.GetDirectoryName(outputPath)}\\{Path.GetFileNameWithoutExtension(outputPath)}.svg";
+                var p = Path.GetFullPath(path);
                 File.WriteAllBytes($"{Path.GetDirectoryName(outputPath)}\\{Path.GetFileNameWithoutExtension(outputPath)}.svg", bytes);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while generating the PlantUML dependency diagram.");
             }
+        }
+
+        internal void GenerateClassInteractionDiagram(ProjectInfoModel project, string outputPath)
+        {
+
+            // Ensure the output directory exists
+            string? directoryPath = Path.GetDirectoryName(outputPath);
+            if (!Directory.Exists(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
+
+            var factory = new RendererFactory();
+
+            var renderer = factory.CreateRenderer(new PlantUmlSettings());
+
+            var bytes = renderer.RenderAsync(project.ClassInteractionDiagram, OutputFormat.Svg).Result;
+            var path = $"{Path.GetDirectoryName(outputPath)}\\{Path.GetFileNameWithoutExtension(outputPath)}.svg";
+            var p = Path.GetFullPath(path);
+            File.WriteAllBytes(path, bytes);
         }
 
         private Dictionary<string, string> GetProjectGuidToNameMap(IEnumerable<ProjectInfoModel> projectInfos)

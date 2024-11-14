@@ -5,9 +5,8 @@ using ProjectDocumentationTool.Interfaces;
 using System.Xml.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
-using ProjectDocumentationTool.Utilities;
 
-namespace ProjectDocumentationTool.Implementation
+namespace ProjectDocumentationTool.Utilities
 {
     public class SourceAnalyser : ISourceAnalyser
     {

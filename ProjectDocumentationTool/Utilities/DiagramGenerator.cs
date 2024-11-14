@@ -88,15 +88,43 @@ namespace ProjectDocumentationTool.Utilities
                 // Start reading the output and error streams
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
-
-                // Wait for process exit or cancellation
-                while (!process.WaitForExit(100))
+                try
                 {
-                    if (token.IsCancellationRequested)
+                    // Wait for process exit or cancellation
+                    while (!process.WaitForExit(100))
                     {
-                        process.Kill();
-                        token.ThrowIfCancellationRequested();
+                        if (token.IsCancellationRequested)
+                        {
+                            try
+                            {
+                                process.Kill();
+                            }
+                            catch (InvalidOperationException ex)
+                            {
+                                // Handle the case where the process has already exited
+                                _logger.LogWarning("Process already exited: {Message}", ex.Message);
+                            }
+                            catch (Exception ex)
+                            {
+                                // Handle any other exceptions during the Kill operation
+                                _logger.LogError(ex, "Error occurred while trying to kill the process.");
+                                throw; // Re-throw the exception if necessary
+                            }
+
+                            // Ensure the cancellation token acknowledges the cancellation
+                            token.ThrowIfCancellationRequested();
+                        }
                     }
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogInformation("Operation was canceled.");
+                }
+                catch (Exception ex)
+                {
+                    // Catch any other unexpected exceptions
+                    _logger.LogError(ex, "An unexpected error occurred during process monitoring.");
+                    //throw; // Optionally re-throw if you want to propagate the exception
                 }
 
                 process.WaitForExit();

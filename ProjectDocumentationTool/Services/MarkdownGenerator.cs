@@ -1,12 +1,21 @@
 ﻿using System.Text;
 using ProjectDocumentationTool.Models;
+using ProjectDocumentationTool.Utilities;
 
 namespace ProjectDocumentationTool.Services
 {
     public class MarkdownGenerator : IMarkdownGenerator
     {
-        public string GenerateSolutionMarkdown(SolutionInfoModel solutionInfo)
+        private readonly PlantUmlDiagramGenerator _plantUmlDiagramGenerator;
+
+        public MarkdownGenerator(PlantUmlDiagramGenerator plantUmlDiagramGenerator)
         {
+            _plantUmlDiagramGenerator = plantUmlDiagramGenerator;
+        }
+
+        public string GenerateSolutionMarkdown(SolutionInfoModel solutionInfo, string outputFilePath)
+        {
+            string outputFolderPath = Path.GetDirectoryName(outputFilePath);
             StringBuilder markdown = new StringBuilder();
             markdown.AppendLine($"## Solution: {solutionInfo.Name}\n");
             markdown.AppendLine($"![Visual Studio Project Depedency Diagram](./diagram/VisualStudioProjectDepedencyDiagram.svg)\n");
@@ -52,6 +61,14 @@ namespace ProjectDocumentationTool.Services
                 {
                     markdown.AppendLine("No configurations found for this project.");
                 }
+
+                string classInteractionDiagramFileName = $"{project.ProjectName}ClassDiagramPath";
+                markdown.AppendLine($"### Class Interaction Diagram\n");
+                markdown.AppendLine($"![Class Interaction Diagram](./diagram/{classInteractionDiagramFileName}.svg)");
+
+                // Generate and save class interaction diagram
+                _plantUmlDiagramGenerator.GenerateClassInteractionDiagram(project, $"{outputFolderPath}\\diagram\\{classInteractionDiagramFileName}.puml");
+
             }
 
             // Add Service Fabric project details

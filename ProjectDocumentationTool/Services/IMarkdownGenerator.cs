@@ -10,7 +10,7 @@ namespace ProjectDocumentationTool.Services
         /// </summary>
         /// <param name="solutionInfo">The SolutionInfoModel containing project and service fabric information.</param>
         /// <returns>Returns a markdown string with detailed documentation.</returns>
-        string GenerateSolutionMarkdown(SolutionInfoModel solutionInfo);
+        string GenerateSolutionMarkdown(SolutionInfoModel solutionInfo, string outputFilePath);
 
         /// <summary>
         /// Generates markdown documentation for a ProjectInfoModel.

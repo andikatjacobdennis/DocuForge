@@ -15,7 +15,7 @@ public class DocumentationService
     public void GenerateAndSaveDocumentation(SolutionInfoModel solutionInfo, string outputFilePath)
     {
         // Generate the markdown content
-        string markdownContent = _markdownGenerator.GenerateSolutionMarkdown(solutionInfo);
+        string markdownContent = _markdownGenerator.GenerateSolutionMarkdown(solutionInfo, outputFilePath);
 
         // Write the markdown content to the specified file
         _markdownWriter.WriteMarkdown(markdownContent, outputFilePath);
