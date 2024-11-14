@@ -152,7 +152,7 @@ namespace ProjectDocumentationTool.Services
                 _logger.LogInformation("Solution analyzed successfully: {SolutionPath}", solutionPath);
 
                 // Generate and save documentation
-                _documentationService.GenerateAndSaveDocumentation(solutionInfo, $"{outputFolder}\\{solutionRepoId}\\Documentation.md");
+                _documentationService.GenerateAndSaveDocumentation(solutionInfo, $"{outputFolder}\\{solutionRepoId}\\{solutionRepoId}_documentation.txt");
 
                 // Generate and save dependency diagram
                 _plantUmlDiagramGenerator.GenerateDependencyDiagram(solutionInfo, $"{outputFolder}\\{solutionRepoId}\\diagram\\VisualStudioProjectDepedencyDiagram.puml");
