@@ -1,8 +1,12 @@
-﻿namespace ProjectDocumentationTool.Services
+﻿using ProjectDocumentationTool.Models;
+
+namespace ProjectDocumentationTool.Services
 {
     // Interface for writing markdown content to various destinations
     public interface IMarkdownWriter
     {
+        string GenerateClassMarkdown(List<ClassInfo> classInfos);
+
         /// <summary>
         /// Writes the markdown content to a specified destination.
         /// </summary>

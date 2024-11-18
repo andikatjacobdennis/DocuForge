@@ -7,10 +7,19 @@ namespace ProjectDocumentationTool.Services
     public class MarkdownGenerator : IMarkdownGenerator
     {
         private readonly PlantUmlDiagramGenerator _plantUmlDiagramGenerator;
+        private readonly CSharpFileFinder _cSharpFileFinder;
+        private readonly CSharpFileAnalyzer _cSharpFileAnalyzer;
+        private readonly IMarkdownWriter _fileMarkdownWriter;
 
-        public MarkdownGenerator(PlantUmlDiagramGenerator plantUmlDiagramGenerator)
+        public MarkdownGenerator(PlantUmlDiagramGenerator plantUmlDiagramGenerator
+            , CSharpFileFinder cSharpFileFinder
+            , CSharpFileAnalyzer cSharpFileAnalyzer
+            , IMarkdownWriter fileMarkdownWriter)
         {
             _plantUmlDiagramGenerator = plantUmlDiagramGenerator;
+            _cSharpFileFinder = cSharpFileFinder;
+            _cSharpFileAnalyzer = cSharpFileAnalyzer;
+            _fileMarkdownWriter = fileMarkdownWriter;
         }
 
         public string GenerateSolutionMarkdown(SolutionInfoModel solutionInfo, string outputFilePath)
@@ -69,6 +78,19 @@ namespace ProjectDocumentationTool.Services
                 // Generate and save class interaction diagram
                 _plantUmlDiagramGenerator.GenerateClassInteractionDiagram(project, $"{outputFolderPath}\\diagram\\{classInteractionDiagramFileName}.puml");
 
+                // Generate class details
+                List<string> csFiles = _cSharpFileFinder.FindCsFiles(project.ProjectFolder);
+
+                foreach (string csFile in csFiles)
+                {
+                    List<ClassInfo> classInfos = _cSharpFileAnalyzer.AnalyzeFile(csFile);
+                    string classMarkdown = _fileMarkdownWriter.GenerateClassMarkdown(classInfos);
+
+                    if (!string.IsNullOrWhiteSpace(classMarkdown))
+                    {
+                        markdown.AppendLine(classMarkdown);
+                    }
+                }
             }
 
             // Add Service Fabric project details

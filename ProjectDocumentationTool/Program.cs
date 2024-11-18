@@ -35,6 +35,8 @@ namespace ProjectDocumentationTool
                 .AddSingleton<PathSanitizer>()
                 .AddSingleton<PlantUmlDiagramGenerator>()
                 .AddSingleton<SolutionProjectExtractor>()
+                .AddSingleton<CSharpFileFinder>()
+                .AddSingleton<CSharpFileAnalyzer>()
                 .BuildServiceProvider();
 
             // Resolve the menu service and call the method to display the menu

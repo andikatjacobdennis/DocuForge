@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Text;
-using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using ProjectDocumentationTool.Interfaces;
 
